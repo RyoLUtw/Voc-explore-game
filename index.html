@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ecologist Vocab Hunt – Prototype Preview</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#101a2e; --panel2:#0f1730; --text:#e7eefc; --muted:#9ab0d6;
+      --good:#33d17a; --warn:#ffb020; --bad:#ff4d6d; --line:#223154; --chip:#162447;
+      --btn:#1e2b4a; --btn2:#26365e;
+      --toolAvail:#1b8f4a; --toolUsed:#c8711b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#070c16 0%,#0b1220 60%,#070c16 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;}
+    .app{max-width:1100px;margin:0 auto;padding:14px;}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;}
+    .title{display:flex;gap:10px;align-items:center;}
+    .badge{background:rgba(51,209,122,.12);border:1px solid rgba(51,209,122,.25);color:#bff5d7;padding:6px 10px;border-radius:999px;font-size:12px;}
+    .stats{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .pill{background:rgba(154,176,214,.10);border:1px solid rgba(154,176,214,.18);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+    .pill b{color:var(--text)}
+
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr;}}
+
+    .card{background:rgba(16,26,46,.85);border:1px solid rgba(34,49,84,.55);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;}
+    .card h2{margin:0;padding:12px 14px;border-bottom:1px solid rgba(34,49,84,.55);font-size:15px;letter-spacing:.2px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+    .card .body{padding:14px;}
+
+    .muted{color:var(--muted)}
+    .btn{appearance:none;border:1px solid rgba(154,176,214,.18);background:var(--btn);color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:600;}
+    .btn:hover{background:var(--btn2)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn.good{border-color:rgba(51,209,122,.35);background:rgba(51,209,122,.15)}
+    .btn.bad{border-color:rgba(255,77,109,.35);background:rgba(255,77,109,.12)}
+    .btn.warn{border-color:rgba(255,176,32,.35);background:rgba(255,176,32,.12)}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .spacer{height:10px}
+    .divider{height:1px;background:rgba(34,49,84,.55);margin:12px 0}
+
+    /* Step banner */
+    .stepBanner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .stepTag{background:rgba(154,176,214,.12);border:1px solid rgba(154,176,214,.18);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+
+    /* Wordsearch */
+    .wsWrap{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+    .wsGrid{display:grid;grid-template-columns:repeat(12, 1fr);gap:6px;touch-action:none;user-select:none;}
+    .cell{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+      background:rgba(15,23,48,.9);border:1px solid rgba(34,49,84,.55);font-weight:800;letter-spacing:.5px;
+      transition:transform .06s ease, background .12s ease, border-color .12s ease;
+    }
+    @media (max-width: 420px){.cell{width:32px;height:32px}}
+    .cell.active{background:rgba(255,176,32,.16);border-color:rgba(255,176,32,.45);transform:scale(1.03)}
+    .cell.hit{background:rgba(51,209,122,.16);border-color:rgba(51,209,122,.45)}
+    .cell.miss{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.45)}
+
+    .wsSide{min-width:240px;flex:1}
+    .attempts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .dot{width:10px;height:10px;border-radius:50%;background:rgba(154,176,214,.25);border:1px solid rgba(154,176,214,.28)}
+    .dot.on{background:rgba(255,77,109,.45);border-color:rgba(255,77,109,.55)}
+
+    /* Scramble */
+    .tiles{display:flex;gap:8px;flex-wrap:wrap}
+    .tile{padding:10px 12px;border-radius:12px;background:rgba(15,23,48,.9);border:1px solid rgba(34,49,84,.55);font-weight:800;cursor:pointer;user-select:none}
+    .tile.used{opacity:.35;cursor:not-allowed}
+    .answer{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;align-items:center;padding:10px;border:1px dashed rgba(154,176,214,.25);border-radius:12px;background:rgba(9,14,30,.55)}
+
+    /* Meaning */
+    .defs{display:flex;flex-direction:column;gap:10px}
+    .defItem{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:14px;background:rgba(15,23,48,.9);border:1px solid rgba(34,49,84,.55);cursor:pointer}
+    .defItem input{margin-top:3px}
+    .defItem.selected{border-color:rgba(51,209,122,.45);background:rgba(51,209,122,.08)}
+
+    /* Tool belt */
+    .toolBelt{display:flex;gap:10px;overflow:auto;padding:10px 2px;scrollbar-width:thin}
+    .tool{min-width:120px;max-width:150px;flex:0 0 auto;border-radius:16px;padding:10px;border:1px solid rgba(34,49,84,.55);
+      background:rgba(15,23,48,.85);display:flex;flex-direction:column;gap:8px;cursor:pointer}
+    .tool .icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900}
+    .tool.avail .icon{background:rgba(27,143,74,.22);border:1px solid rgba(27,143,74,.45)}
+    .tool.used .icon{background:rgba(200,113,27,.22);border:1px solid rgba(200,113,27,.45)}
+    .tool .name{font-weight:800;font-size:12.5px;line-height:1.2}
+    .tool .cost{font-size:12px;color:var(--muted)}
+
+    /* Tagging */
+    .tagLayout{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width: 980px){.tagLayout{grid-template-columns:1fr;}}
+    .tagPool{display:flex;gap:8px;flex-wrap:wrap}
+    .tag{padding:8px 10px;border-radius:999px;background:rgba(22,36,71,.9);border:1px solid rgba(34,49,84,.55);cursor:pointer;font-weight:700;font-size:12px}
+    .tag.selected{border-color:rgba(255,176,32,.55);background:rgba(255,176,32,.12)}
+    .tag.added{border-color:rgba(51,209,122,.45);background:rgba(51,209,122,.12)}
+
+    /* Modal */
+    .modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+    .modal{width:min(680px, 100%);max-height:min(80vh, 720px);overflow:auto;background:rgba(16,26,46,.98);border:1px solid rgba(34,49,84,.75);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+    .modalHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(34,49,84,.55)}
+    .modalHeader b{font-size:14px}
+    .close{width:36px;height:36px;border-radius:12px;border:1px solid rgba(154,176,214,.18);background:rgba(15,23,48,.85);color:var(--text);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+    .modalBody{padding:14px;color:var(--text)}
+    .bigWord{font-size:34px;font-weight:950;letter-spacing:.6px;margin:4px 0 6px}
+    .timer{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+    .toast{margin-top:8px;padding:10px 12px;border-radius:14px;border:1px solid rgba(34,49,84,.55);background:rgba(9,14,30,.55);color:var(--muted)}
+    .toast.good{border-color:rgba(51,209,122,.35);background:rgba(51,209,122,.08)}
+    .toast.bad{border-color:rgba(255,77,109,.35);background:rgba(255,77,109,.08)}
+    .toast.warn{border-color:rgba(255,176,32,.35);background:rgba(255,176,32,.08)}
+
+    code{background:rgba(9,14,30,.55);padding:2px 6px;border-radius:8px;border:1px solid rgba(34,49,84,.55)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <div style="font-size:18px;font-weight:900">Ecologist Vocab Hunt</div>
+        <span class="badge">Prototype Preview</span>
+      </div>
+      <div class="stats">
+        <div class="pill">RP: <b id="rp">12</b> <span id="rpDebt" class="muted"></span></div>
+        <div class="pill">Progress: <b id="progress">0/10</b></div>
+        <div class="pill">Queue: <b id="queue">10</b></div>
+        <button class="btn" id="reset">Reset Game</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>
+          <span>Encounter</span>
+          <span class="stepTag" id="stepTag">Step 1 — Word Circling</span>
+        </h2>
+        <div class="body" id="main"></div>
+      </section>
+
+      <aside class="card">
+        <h2>
+          <span>Field Journal</span>
+          <span class="stepTag" id="creatureTag">—</span>
+        </h2>
+        <div class="body" id="side"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- modal -->
+  <div class="modalOverlay" id="modalOverlay" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modalHeader">
+        <b id="modalTitle">Modal</b>
+        <button class="close" id="modalClose" aria-label="Close">×</button>
+      </div>
+      <div class="modalBody" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------
+    // Study set (10 intermediate IELTS words)
+    // ---------------------------
+    const STUDY_SET = [
+      { word:"reluctant", definition:"not willing to do something; hesitant", pos:"adjective", register:"neutral", domain:"daily/psychological" },
+      { word:"significant", definition:"important enough to be noticed or have an effect", pos:"adjective", register:"academic", domain:"general/academic" },
+      { word:"allocate", definition:"to officially give a share of something for a purpose", pos:"verb", register:"formal", domain:"business/administration" },
+      { word:"maintain", definition:"to keep something in good condition or at the same level", pos:"verb", register:"neutral", domain:"general" },
+      { word:"inevitable", definition:"certain to happen and impossible to avoid", pos:"adjective", register:"formal", domain:"abstract/general" },
+      { word:"decline", definition:"to become smaller, weaker, or worse", pos:"verb", register:"formal", domain:"trends/academic" },
+      { word:"justify", definition:"to show that something is reasonable or necessary", pos:"verb", register:"formal", domain:"argument/academic" },
+      { word:"stable", definition:"not likely to change or fail", pos:"adjective", register:"neutral", domain:"science/general" },
+      { word:"resource", definition:"a supply of something that can be used when needed", pos:"noun", register:"neutral", domain:"environment/economy" },
+      { word:"impact", definition:"a strong effect or influence", pos:"noun", register:"academic", domain:"general/academic" }
+    ];
+
+    // Tool definitions (adopted: 2,5,7,8 + example)
+    const TOOLS = [
+      { id:"obs", name:"Field Observation Log", icon:"📓", base:2 },
+      { id:"anom", name:"Behavioral Anomaly Note", icon:"🧪", base:2 },
+      { id:"family", name:"Genetic Relatives", icon:"🧬", base:2 },
+      { id:"coll", name:"Habitual Associations", icon:"🔗", base:2 },
+      { id:"hab", name:"Habitat Snapshot", icon:"🌿", base:2 }
+    ];
+
+    // Pre-authored tool info (lightweight prototype text; not meant as full materials)
+    const TOOL_INFO = {
+      reluctant: {
+        obs: "She was reluctant to speak in front of the class.",
+        anom: "Natural: He felt reluctant to join.\nOdd: He felt reluctant to breathe.",
+        family: "reluctant → reluctance → reluctantly",
+        coll: "reluctant to + verb; feel reluctant",
+        hab: "Often used when someone hesitates because they feel unsure, nervous, or unwilling."
+      },
+      significant: {
+        obs: "There was a significant increase in traffic last month.",
+        anom: "Natural: The change was significant.\nOdd: The change was significantly.",
+        family: "significant → significance → significantly",
+        coll: "significant impact; significant increase/decrease",
+        hab: "Common in reports and academic writing to describe important changes or effects."
+      },
+      allocate: {
+        obs: "The school allocated extra time for revision.",
+        anom: "Natural: Funds were allocated to health care.\nOdd: Funds were allocated at happiness.",
+        family: "allocate → allocation → allocated",
+        coll: "allocate resources; allocate funds/time",
+        hab: "Used in formal contexts when money/time/resources are officially given for a purpose."
+      },
+      maintain: {
+        obs: "They maintain the equipment regularly.",
+        anom: "Natural: Maintain a stable temperature.\nOdd: Maintain an accident.",
+        family: "maintain → maintenance → maintainable",
+        coll: "maintain standards; maintain control; maintain a balance",
+        hab: "Used when keeping something steady, working well, or at the same level over time."
+      },
+      inevitable: {
+        obs: "Some delays are inevitable during repairs.",
+        anom: "Natural: The result was inevitable.\nOdd: The result was inevitablely.",
+        family: "inevitable → inevitability → inevitably",
+        coll: "almost inevitable; seem inevitable",
+        hab: "Used to say an outcome cannot be avoided, especially in formal explanations."
+      },
+      decline: {
+        obs: "Sales began to decline after the price increase.",
+        anom: "Natural: A decline in quality.\nOdd: A decline of happinessly.",
+        family: "decline (v/n) → declining",
+        coll: "decline sharply/gradually; decline in + noun",
+        hab: "Common in data/trend contexts to describe going down or becoming worse."
+      },
+      justify: {
+        obs: "The evidence does not justify the decision.",
+        anom: "Natural: Justify the cost.\nOdd: Justify the sandwich.",
+        family: "justify → justification → justifiable",
+        coll: "justify a decision; justify the cost; justify doing",
+        hab: "Used in arguments when you need to show something is reasonable or necessary."
+      },
+      stable: {
+        obs: "The patient is now stable.",
+        anom: "Natural: A stable system.\nOdd: A stablely system.",
+        family: "stable → stability → stabilize",
+        coll: "remain stable; stable condition; stable temperature",
+        hab: "Used when something is not likely to change suddenly or fail (science/health/general)."
+      },
+      resource: {
+        obs: "Water is a valuable resource in dry regions.",
+        anom: "Natural: Natural resources are limited.\nOdd: Natural resources are polite.",
+        family: "resource → resources → resourced",
+        coll: "natural resources; human resources; resource management",
+        hab: "Used when talking about supplies that people can use (materials, money, staff, time)."
+      },
+      impact: {
+        obs: "The new rule had a positive impact on safety.",
+        anom: "Natural: Impact on society.\nOdd: Impact at society.",
+        family: "impact (n/v) → impactful",
+        coll: "have an impact; impact on + noun; major impact",
+        hab: "Common in academic or formal writing to describe strong effects or influence."
+      }
+    };
+
+    // ---------------------------
+    // Game state
+    // ---------------------------
+    const state = {
+      rp: 12,
+      rpDebt: 0,
+      queue: [],
+      completed: new Set(),
+      escaped: [],
+      step: 1,
+      current: null,
+      // word-circling
+      wsGrid: [],
+      wsSelecting: false,
+      wsPath: [],
+      wsStartCell: null,
+      // scramble
+      scrambleTiles: [],
+      scrambleAnswer: [],
+      scrambleMistakes: 0,
+      // meaning
+      defs: [],
+      selectedDef: null,
+      usedToolsThisWord: new Set(),
+      toolOutputsThisWord: {},
+      // tagging
+      tagSelection: null,
+      addedTags: { pos:null, register:null, domain:null },
+      // tool cost cooldown across words
+      toolStreak: Object.fromEntries(TOOLS.map(t=>[t.id,0]))
+    };
+
+    const $ = (id)=>document.getElementById(id);
+
+    function shuffle(arr){
+      const a=[...arr];
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    }
+
+    function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+
+    function initGame(){
+      state.rp = 12;
+      state.rpDebt = 0;
+      state.queue = shuffle(STUDY_SET.map(w=>w.word));
+      state.completed = new Set();
+      state.escaped = [];
+      state.step = 1;
+      state.toolStreak = Object.fromEntries(TOOLS.map(t=>[t.id,0]));
+      nextWord();
+    }
+
+    function nextWord(){
+      if(state.completed.size === STUDY_SET.length){
+        renderEnd();
+        return;
+      }
+      if(state.queue.length===0){
+        // refill from escaped that aren't completed
+        state.queue = state.escaped.filter(w=>!state.completed.has(w));
+        state.escaped = [];
+        if(state.queue.length===0){
+          renderEnd();
+          return;
+        }
+      }
+      state.current = state.queue.shift();
+      state.step = 1;
+      resetPerWord();
+      updateHeader();
+      render();
+    }
+
+    function resetPerWord(){
+      state.wsGrid = [];
+      state.wsSelecting = false;
+      state.wsPath = [];
+      state.wsStartCell = null;
+
+      state.scrambleTiles = [];
+      state.scrambleAnswer = [];
+      state.scrambleMistakes = 0;
+
+      state.defs = [];
+      state.selectedDef = null;
+      state.usedToolsThisWord = new Set();
+      state.toolOutputsThisWord = {};
+
+      state.tagSelection = null;
+      state.addedTags = { pos:null, register:null, domain:null };
+    }
+
+    function getWordObj(word){
+      return STUDY_SET.find(w=>w.word===word);
+    }
+
+    function updateHeader(){
+      $("rp").textContent = state.rp;
+      $("rpDebt").textContent = state.rpDebt>0 ? `(Debt: ${state.rpDebt})` : "";
+      $("progress").textContent = `${state.completed.size}/${STUDY_SET.length}`;
+      $("queue").textContent = `${state.queue.length + (state.escaped.filter(w=>!state.completed.has(w)).length)}`;
+      $("creatureTag").textContent = state.current ? `Target: ${state.current}` : "—";
+      $("stepTag").textContent = stepLabel(state.step);
+    }
+
+    function stepLabel(step){
+      return step===1 ? "Step 1 — Word Circling" :
+             step===2 ? "Step 2 — Word Scramble" :
+             step===3 ? "Step 3 — Meaning Matching" :
+             step===4 ? "Step 4 — Tagging" : "—";
+    }
+
+    // ---------------------------
+    // Modal helpers
+    // ---------------------------
+    let modalTimer = null;
+
+    function openModal({title, bodyHtml, closable=true}){
+      $("modalTitle").textContent = title;
+      $("modalBody").innerHTML = bodyHtml;
+      $("modalOverlay").style.display = "flex";
+      $("modalClose").style.display = closable ? "flex" : "none";
+    }
+
+    function closeModal(){
+      if(modalTimer){clearInterval(modalTimer); modalTimer=null;}
+      $("modalOverlay").style.display = "none";
+      $("modalTitle").textContent = "";
+      $("modalBody").innerHTML = "";
+    }
+
+    $("modalClose").addEventListener("click", closeModal);
+    $("modalOverlay").addEventListener("click", (e)=>{
+      if(e.target === $("modalOverlay")) closeModal();
+    });
+
+    // timed word reveal modal
+    function showTimedWord(word, seconds, subtitle){
+      return new Promise(resolve=>{
+        let remaining = seconds;
+        openModal({
+          title: subtitle || "Field Note",
+          bodyHtml: `
+            <div class="bigWord">${word}</div>
+            <div class="timer">Memorize time left: <b id="tleft">${remaining}</b>s</div>
+          `,
+          closable:false
+        });
+        modalTimer = setInterval(()=>{
+          remaining -= 1;
+          const el = document.getElementById("tleft");
+          if(el) el.textContent = remaining;
+          if(remaining<=0){
+            clearInterval(modalTimer);
+            modalTimer=null;
+            closeModal();
+            resolve();
+          }
+        }, 1000);
+      });
+    }
+
+    // scrollable tool modal
+    function showToolModal(toolName, content){
+      openModal({
+        title: toolName,
+        bodyHtml: `
+          <div style="white-space:pre-wrap;line-height:1.45">${escapeHtml(content)}</div>
+        `,
+        closable:true
+      });
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ---------------------------
+    // Tool cost & cooldown logic (your principle)
+    // - Using same tool consecutively increases cost by +2
+    // - Each time a DIFFERENT tool is used, all other tools cool down by -1 streak
+    // - Streak persists across words (encounters)
+    // ---------------------------
+    function toolCost(toolId){
+      const base = TOOLS.find(t=>t.id===toolId).base;
+      const streak = state.toolStreak[toolId] || 0;
+      return base + 2*Math.max(0, streak-0); // streak starts at 0; first use costs base
+    }
+
+    function applyToolUse(toolId){
+      // Cool down other tools by -1 streak
+      for(const t of TOOLS){
+        if(t.id !== toolId){
+          state.toolStreak[t.id] = Math.max(0, (state.toolStreak[t.id]||0) - 1);
+        }
+      }
+      // Increase streak for this tool
+      state.toolStreak[toolId] = (state.toolStreak[toolId]||0) + 1;
+    }
+
+    function spendRP(cost){
+      if(state.rp >= cost){
+        state.rp -= cost;
+      } else {
+        const deficit = cost - state.rp;
+        state.rp = 0;
+        state.rpDebt += deficit;
+      }
+      updateHeader();
+    }
+
+    // ---------------------------
+    // Rendering
+    // ---------------------------
+    function render(){
+      updateHeader();
+      renderSide();
+      if(state.step===1) renderStep1();
+      if(state.step===2) renderStep2();
+      if(state.step===3) renderStep3();
+      if(state.step===4) renderStep4();
+    }
+
+    function renderSide(){
+      const w = getWordObj(state.current);
+      const escapedPending = state.escaped.filter(x=>!state.completed.has(x));
+      const completedList = Array.from(state.completed);
+
+      $("side").innerHTML = `
+        <div class="row" style="justify-content:space-between;gap:8px">
+          <div>
+            <div class="muted" style="font-size:12px">Current creature</div>
+            <div style="font-size:20px;font-weight:950">${state.current}</div>
+          </div>
+          <div class="pill">Goal: <b>identify</b> + <b>tag</b></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="muted" style="font-size:12px">Completion</div>
+        <div class="toast good" style="margin-top:8px">
+          <b>${completedList.length}</b> confirmed species<br/>
+          <span class="muted">${completedList.length ? completedList.join(", ") : "—"}</span>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="muted" style="font-size:12px">Creatures that escaped (to revisit)</div>
+        <div class="toast ${escapedPending.length?"warn":""}" style="margin-top:8px">
+          <b>${escapedPending.length}</b> pending<br/>
+          <span class="muted">${escapedPending.length ? escapedPending.join(", ") : "—"}</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="muted" style="font-size:12px">Reference (target tags)</div>
+        <div class="toast" style="margin-top:8px">
+          <div><span class="muted">POS:</span> <b>${w.pos}</b></div>
+          <div><span class="muted">Register:</span> <b>${w.register}</b></div>
+          <div><span class="muted">Domain:</span> <b>${w.domain}</b></div>
+          <div class="muted" style="margin-top:8px;font-size:12px">(Shown only in this prototype preview)</div>
+        </div>
+      `;
+    }
+
+    // ---------------------------
+    // STEP 1: Word circling
+    // ---------------------------
+    function renderStep1(){
+      const main = $("main");
+      main.innerHTML = `
+        <div class="stepBanner">
+          <div>
+            <div class="muted" style="font-size:12px">Step 1</div>
+            <div style="font-size:18px;font-weight:950">Spot the creature</div>
+            <div class="muted" style="margin-top:4px">You will get <b>5 seconds</b> to memorize the target word, then search for it in the letter field.</div>
+          </div>
+          <div class="row">
+            <button class="btn good" id="startS1">Start Observation</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div id="wsArea" class="muted">Click <b>Start Observation</b> to begin.</div>
+      `;
+
+      $("startS1").addEventListener("click", async ()=>{
+        await showTimedWord(state.current, 5, "Observation Briefing");
+        buildWordSearch();
+        renderWordSearchUI();
+      });
+    }
+
+    function buildWordSearch(){
+      const size = 12;
+      const letters = "abcdefghijklmnopqrstuvwxyz";
+      const target = state.current.toLowerCase();
+
+      // Create empty grid
+      const grid = Array.from({length:size},()=>Array.from({length:size},()=>""));
+
+      // Place target word horizontally in a random row
+      const row = Math.floor(Math.random()*size);
+      const startCol = Math.floor(Math.random()*(size - target.length));
+      for(let i=0;i<target.length;i++){
+        grid[row][startCol+i] = target[i];
+      }
+
+      // Fill rest with random letters
+      for(let r=0;r<size;r++){
+        for(let c=0;c<size;c++){
+          if(!grid[r][c]) grid[r][c] = letters[Math.floor(Math.random()*letters.length)];
+        }
+      }
+
+      state.wsGrid = grid;
+      state.wsPath = [];
+      state.wsSelecting = false;
+      state.wsStartCell = null;
+    }
+
+    function renderWordSearchUI(){
+      const main = $("main");
+      const target = state.current.toUpperCase();
+
+      const gridHtml = state.wsGrid.map((row,r)=>row.map((ch,c)=>
+        `<div class="cell" data-r="${r}" data-c="${c}">${ch.toUpperCase()}</div>`
+      ).join("")).join("");
+
+      main.querySelector("#wsArea").innerHTML = `
+        <div class="wsWrap">
+          <div>
+            <div class="muted" style="font-size:12px">Drag over letters to select</div>
+            <div class="wsGrid" id="wsGrid">${gridHtml}</div>
+          </div>
+          <div class="wsSide">
+            <div class="toast">
+              <div class="muted" style="font-size:12px">Target</div>
+              <div style="font-size:22px;font-weight:950;letter-spacing:1px">${target}</div>
+              <div class="muted" style="margin-top:6px">Selection builds a string. If it matches the target, the creature is spotted.</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="row">
+              <button class="btn" id="wsClear">Clear selection</button>
+              <button class="btn good" id="wsSubmit">Confirm selection</button>
+            </div>
+            <div id="wsMsg" class="toast" style="margin-top:10px">Start dragging on the grid.</div>
+          </div>
+        </div>
+      `;
+
+      const gridEl = $("wsGrid");
+      const msgEl = $("wsMsg");
+
+      function setActiveCell(r,c,active){
+        const cell = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+        if(!cell) return;
+        cell.classList.toggle("active", active);
+      }
+
+      function clearActive(){
+        gridEl.querySelectorAll(".cell").forEach(x=>x.classList.remove("active","miss","hit"));
+        state.wsPath = [];
+        msgEl.className = "toast";
+        msgEl.textContent = "Selection cleared.";
+      }
+
+      function pathString(){
+        return state.wsPath.map(({r,c})=>state.wsGrid[r][c]).join("");
+      }
+
+      // Pointer-based drag selection
+      gridEl.addEventListener("pointerdown", (e)=>{
+        const cell = e.target.closest(".cell");
+        if(!cell) return;
+        state.wsSelecting = true;
+        gridEl.setPointerCapture(e.pointerId);
+        state.wsPath = [];
+        gridEl.querySelectorAll(".cell").forEach(x=>x.classList.remove("active","miss","hit"));
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        state.wsPath.push({r,c});
+        setActiveCell(r,c,true);
+        msgEl.className = "toast";
+        msgEl.textContent = `Selected: ${pathString().toUpperCase()}`;
+      });
+
+      gridEl.addEventListener("pointermove", (e)=>{
+        if(!state.wsSelecting) return;
+        const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".cell");
+        if(!cell) return;
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        const last = state.wsPath[state.wsPath.length-1];
+        if(last && last.r===r && last.c===c) return;
+        // Avoid duplicates in this simple prototype
+        if(state.wsPath.some(p=>p.r===r && p.c===c)) return;
+        state.wsPath.push({r,c});
+        setActiveCell(r,c,true);
+        msgEl.textContent = `Selected: ${pathString().toUpperCase()}`;
+      });
+
+      gridEl.addEventListener("pointerup", ()=>{ state.wsSelecting = false; });
+      gridEl.addEventListener("pointercancel", ()=>{ state.wsSelecting = false; });
+
+      $("wsClear").addEventListener("click", clearActive);
+
+      $("wsSubmit").addEventListener("click", ()=>{
+        const sel = pathString().toLowerCase();
+        const targetLower = state.current.toLowerCase();
+        if(sel === targetLower){
+          gridEl.querySelectorAll(".cell.active").forEach(x=>x.classList.add("hit"));
+          msgEl.className = "toast good";
+          msgEl.textContent = "Success: creature spotted safely.";
+          setTimeout(()=>{
+            state.step = 2;
+            updateHeader();
+            render();
+          }, 650);
+        } else {
+          gridEl.querySelectorAll(".cell.active").forEach(x=>x.classList.add("miss"));
+          msgEl.className = "toast bad";
+          msgEl.textContent = "Incorrect: the creature is alerted and runs away. You'll revisit later.";
+          // mark and move on
+          if(!state.completed.has(state.current)) state.escaped.push(state.current);
+          setTimeout(()=>nextWord(), 900);
+        }
+      });
+    }
+
+    // ---------------------------
+    // STEP 2: Scramble
+    // ---------------------------
+    function renderStep2(){
+      const main = $("main");
+      const word = state.current.toUpperCase();
+      const letters = shuffle(word.split(""));
+      state.scrambleTiles = letters.map((ch,idx)=>({ch, idx, used:false}));
+      state.scrambleAnswer = [];
+      state.scrambleMistakes = 0;
+
+      main.innerHTML = `
+        <div class="stepBanner">
+          <div>
+            <div class="muted" style="font-size:12px">Step 2</div>
+            <div style="font-size:18px;font-weight:950">Capture: unscramble the name</div>
+            <div class="muted" style="margin-top:4px">Build the word. You may peek for <b>3 seconds</b>, but it costs points.</div>
+          </div>
+          <div class="row">
+            <button class="btn warn" id="peek">Quick Glimpse (3s) <span class="muted">— Cost 2 RP</span></button>
+            <button class="btn" id="clearAns">Clear</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="muted" style="font-size:12px">Your answer</div>
+        <div class="answer" id="ans"></div>
+
+        <div class="spacer"></div>
+
+        <div class="muted" style="font-size:12px">Tiles</div>
+        <div class="tiles" id="tiles"></div>
+
+        <div class="spacer"></div>
+
+        <div class="row">
+          <button class="btn good" id="submit">Confirm capture</button>
+          <div class="attempts muted">Mistakes: <span id="mistakes">0</span>/3</div>
+        </div>
+
+        <div id="s2Msg" class="toast" style="margin-top:10px">Tap tiles to build the word.</div>
+      `;
+
+      const tilesEl = $("tiles");
+      const ansEl = $("ans");
+      const msgEl = $("s2Msg");
+
+      function renderTiles(){
+        tilesEl.innerHTML = state.scrambleTiles.map(t=>
+          `<div class="tile ${t.used?"used":""}" data-idx="${t.idx}">${t.ch}</div>`
+        ).join("");
+        ansEl.innerHTML = state.scrambleAnswer.map(x=>`<div class="tile added">${x}</div>`).join("") || `<span class="muted">(empty)</span>`;
+        $("mistakes").textContent = state.scrambleMistakes;
+      }
+
+      tilesEl.addEventListener("click", (e)=>{
+        const tile = e.target.closest(".tile");
+        if(!tile) return;
+        const idx = +tile.dataset.idx;
+        const t = state.scrambleTiles.find(x=>x.idx===idx);
+        if(!t || t.used) return;
+        t.used = true;
+        state.scrambleAnswer.push(t.ch);
+        renderTiles();
+      });
+
+      $("clearAns").addEventListener("click", ()=>{
+        state.scrambleTiles.forEach(t=>t.used=false);
+        state.scrambleAnswer=[];
+        renderTiles();
+      });
+
+      $("peek").addEventListener("click", async ()=>{
+        spendRP(2);
+        await showTimedWord(word, 3, "Quick Glimpse");
+        msgEl.className = "toast warn";
+        msgEl.textContent = "Peek used. Continue the capture.";
+        updateHeader();
+      });
+
+      $("submit").addEventListener("click", ()=>{
+        const attempt = state.scrambleAnswer.join("");
+        if(attempt === word){
+          msgEl.className = "toast good";
+          msgEl.textContent = "Capture success: creature secured safely.";
+          setTimeout(()=>{
+            state.step = 3;
+            updateHeader();
+            render();
+          }, 650);
+        } else {
+          state.scrambleMistakes += 1;
+          renderTiles();
+          if(state.scrambleMistakes >= 3){
+            msgEl.className = "toast bad";
+            msgEl.textContent = "Capture failed: the creature escapes back to the wild. You'll revisit later.";
+            if(!state.completed.has(state.current)) state.escaped.push(state.current);
+            setTimeout(()=>nextWord(), 900);
+          } else {
+            msgEl.className = "toast warn";
+            msgEl.textContent = `Not quite. Try again (${state.scrambleMistakes}/3).`;
+          }
+        }
+      });
+
+      renderTiles();
+    }
+
+    // ---------------------------
+    // STEP 3: Meaning matching
+    // ---------------------------
+    function renderStep3(){
+      const main = $("main");
+      const w = getWordObj(state.current);
+
+      // build 4 definitions: 1 correct + 3 distractors from other words
+      const distractors = shuffle(STUDY_SET.filter(x=>x.word!==w.word)).slice(0,3).map(x=>({word:x.word, text:x.definition, correct:false}));
+      const options = shuffle([{word:w.word, text:w.definition, correct:true}, ...distractors]);
+      state.defs = options;
+      state.selectedDef = null;
+
+      main.innerHTML = `
+        <div class="stepBanner">
+          <div>
+            <div class="muted" style="font-size:12px">Step 3</div>
+            <div style="font-size:18px;font-weight:950">Identify the species (meaning)</div>
+            <div class="muted" style="margin-top:4px">Use research tools if needed. Used tools can be reopened with no extra cost.</div>
+          </div>
+          <div class="row">
+            <div class="pill">Target: <b>${w.word}</b></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="defs" id="defs"></div>
+
+        <div class="spacer"></div>
+
+        <button class="btn good" id="confirmMeaning" disabled>Confirm meaning</button>
+
+        <div class="divider"></div>
+
+        <div class="muted" style="font-size:12px">Research tool belt</div>
+        <div class="toolBelt" id="toolBelt"></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="pill">Remaining RP: <b id="rpInline">${state.rp}</b> <span class="muted">(can go negative)</span></div>
+          <div class="muted" style="font-size:12px">Used tools turn <span style="color:var(--warn);font-weight:800">orange</span></div>
+        </div>
+
+        <div id="s3Msg" class="toast" style="margin-top:10px">Choose a definition, then confirm.</div>
+      `;
+
+      const defsEl = $("defs");
+      const msgEl = $("s3Msg");
+
+      defsEl.innerHTML = options.map((opt,i)=>{
+        return `
+          <label class="defItem" data-i="${i}">
+            <input type="radio" name="def" />
+            <div>
+              <div style="font-weight:900">${opt.text}</div>
+              <div class="muted" style="font-size:12px;margin-top:4px">Option ${i+1}</div>
+            </div>
+          </label>
+        `;
+      }).join("");
+
+      defsEl.addEventListener("click", (e)=>{
+        const item = e.target.closest(".defItem");
+        if(!item) return;
+        defsEl.querySelectorAll(".defItem").forEach(x=>x.classList.remove("selected"));
+        item.classList.add("selected");
+        item.querySelector("input").checked = true;
+        state.selectedDef = +item.dataset.i;
+        $("confirmMeaning").disabled = false;
+      });
+
+      renderToolBelt();
+
+      $("confirmMeaning").addEventListener("click", ()=>{
+        if(state.selectedDef===null) return;
+        const chosen = state.defs[state.selectedDef];
+        if(chosen.correct){
+          msgEl.className = "toast good";
+          msgEl.textContent = "Correct identification: species confirmed.";
+          setTimeout(()=>{
+            state.step = 4;
+            updateHeader();
+            render();
+          }, 650);
+        } else {
+          msgEl.className = "toast bad";
+          msgEl.textContent = "Misidentified: the creature must be recaptured for analysis next encounter.";
+          if(!state.completed.has(state.current)) state.escaped.push(state.current);
+          setTimeout(()=>nextWord(), 900);
+        }
+      });
+    }
+
+    function renderToolBelt(){
+      const belt = $("toolBelt");
+      if(!belt) return;
+      const word = state.current;
+      belt.innerHTML = TOOLS.map(t=>{
+        const used = state.usedToolsThisWord.has(t.id);
+        const cost = toolCost(t.id);
+        return `
+          <div class="tool ${used?"used":"avail"}" data-id="${t.id}" title="${t.name}">
+            <div class="icon">${t.icon}</div>
+            <div class="name">${t.name}</div>
+            <div class="cost">Cost: <b>${used?0:cost}</b> RP</div>
+          </div>
+        `;
+      }).join("");
+
+      belt.addEventListener("click", (e)=>{
+        const tool = e.target.closest(".tool");
+        if(!tool) return;
+        const toolId = tool.dataset.id;
+        const info = TOOL_INFO[word]?.[toolId] || "(No data for this prototype tool.)";
+
+        // If already used, show modal with no cost
+        if(state.usedToolsThisWord.has(toolId)){
+          showToolModal(TOOLS.find(t=>t.id===toolId).name, info);
+          return;
+        }
+
+        // New use: spend RP, apply cooldown/streak, mark as used
+        const cost = toolCost(toolId);
+        spendRP(cost);
+        applyToolUse(toolId);
+        state.usedToolsThisWord.add(toolId);
+        state.toolOutputsThisWord[toolId] = info;
+
+        // re-render belt + inline RP
+        renderToolBelt();
+        const rpInline = document.getElementById("rpInline");
+        if(rpInline) rpInline.textContent = state.rp;
+
+        showToolModal(TOOLS.find(t=>t.id===toolId).name, info);
+      }, { once:true });
+    }
+
+    // ---------------------------
+    // STEP 4: Tagging
+    // ---------------------------
+    function renderStep4(){
+      const main = $("main");
+      const w = getWordObj(state.current);
+
+      const POS = ["noun","verb","adjective","adverb"];
+      const REG = ["neutral","formal","informal","academic"];
+      const DOM = [
+        "general","general/academic","argument/academic","trends/academic",
+        "business/administration","science/general","environment/economy","daily/psychological","abstract/general"
+      ];
+
+      main.innerHTML = `
+        <div class="stepBanner">
+          <div>
+            <div class="muted" style="font-size:12px">Step 4</div>
+            <div style="font-size:18px;font-weight:950">Tag the creature (POS / register / domain)</div>
+            <div class="muted" style="margin-top:4px">Tools persist from Step 3. You can still use unused tools to support tagging.</div>
+          </div>
+          <div class="row">
+            <div class="pill">Creature: <b>${w.word}</b></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tagLayout">
+          <div class="card" style="background:rgba(15,23,48,.55);border-color:rgba(34,49,84,.45)">
+            <h2 style="border-bottom-color:rgba(34,49,84,.45)">Tag pools</h2>
+            <div class="body">
+              <div class="muted" style="font-size:12px">Part of Speech</div>
+              <div class="tagPool" id="posPool">${POS.map(x=>`<span class="tag" data-cat="pos" data-val="${x}">${x}</span>`).join("")}</div>
+
+              <div class="spacer"></div>
+              <div class="muted" style="font-size:12px">Register</div>
+              <div class="tagPool" id="regPool">${REG.map(x=>`<span class="tag" data-cat="register" data-val="${x}">${x}</span>`).join("")}</div>
+
+              <div class="spacer"></div>
+              <div class="muted" style="font-size:12px">Domain</div>
+              <div class="tagPool" id="domPool">${DOM.map(x=>`<span class="tag" data-cat="domain" data-val="${x}">${x}</span>`).join("")}</div>
+
+              <div class="divider"></div>
+
+              <div class="row">
+                <button class="btn" id="addTag">Add tag</button>
+                <button class="btn" id="removeTag">Remove tag</button>
+                <button class="btn good" id="finish">Finish tagging</button>
+              </div>
+
+              <div id="s4Msg" class="toast" style="margin-top:10px">Select a tag, then add it.</div>
+            </div>
+          </div>
+
+          <div class="card" style="background:rgba(15,23,48,.55);border-color:rgba(34,49,84,.45)">
+            <h2 style="border-bottom-color:rgba(34,49,84,.45)">Creature record</h2>
+            <div class="body">
+              <div class="bigWord" style="margin:0">${w.word}</div>
+              <div class="muted">Add tags below. Click an added tag to select it for removal.</div>
+
+              <div class="spacer"></div>
+              <div class="muted" style="font-size:12px">Added tags</div>
+              <div id="addedTags" class="tagPool" style="margin-top:8px"></div>
+
+              <div class="divider"></div>
+              <div class="muted" style="font-size:12px">Research tool belt</div>
+              <div class="toolBelt" id="toolBelt"></div>
+              <div class="row" style="justify-content:space-between">
+                <div class="pill">Remaining RP: <b id="rpInline">${state.rp}</b> <span class="muted">(can go negative)</span></div>
+                <div class="muted" style="font-size:12px">Tools persist for this creature</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const msgEl = $("s4Msg");
+      const addedEl = $("addedTags");
+      let selectedAdded = null;
+
+      function renderAdded(){
+        const chips = [];
+        for(const cat of ["pos","register","domain"]){
+          const val = state.addedTags[cat];
+          if(val){
+            const isSel = selectedAdded && selectedAdded.cat===cat;
+            chips.push(`<span class="tag added ${isSel?"selected":""}" data-added="1" data-cat="${cat}" data-val="${val}">${cat}: ${val}</span>`);
+          }
+        }
+        addedEl.innerHTML = chips.join("") || `<span class="muted">(none)</span>`;
+      }
+
+      function clearPoolSelection(){
+        main.querySelectorAll('.tag[data-added="0"]').forEach(x=>x.classList.remove('selected'));
+      }
+
+      // Tag selection
+      main.querySelectorAll('.tag').forEach(tag=>{
+        tag.dataset.added = tag.dataset.added || "0";
+      });
+
+      main.addEventListener("click", (e)=>{
+        const tag = e.target.closest(".tag");
+        if(!tag) return;
+
+        if(tag.dataset.added === "1"){
+          // select added tag for removal
+          selectedAdded = { cat: tag.dataset.cat, val: tag.dataset.val };
+          renderAdded();
+          msgEl.className = "toast";
+          msgEl.textContent = `Selected for removal: ${selectedAdded.cat}: ${selectedAdded.val}`;
+          return;
+        }
+
+        // select pool tag
+        selectedAdded = null;
+        main.querySelectorAll('.tag[data-added="0"]').forEach(x=>x.classList.remove('selected'));
+        tag.classList.add("selected");
+        state.tagSelection = { cat: tag.dataset.cat, val: tag.dataset.val };
+        msgEl.className = "toast";
+        msgEl.textContent = `Selected: ${state.tagSelection.cat} = ${state.tagSelection.val}`;
+        renderAdded();
+      });
+
+      $("addTag").addEventListener("click", ()=>{
+        if(!state.tagSelection){
+          msgEl.className = "toast warn";
+          msgEl.textContent = "Select a tag from the pools first.";
+          return;
+        }
+        state.addedTags[state.tagSelection.cat] = state.tagSelection.val;
+        msgEl.className = "toast good";
+        msgEl.textContent = `Added: ${state.tagSelection.cat} = ${state.tagSelection.val}`;
+        state.tagSelection = null;
+        clearPoolSelection();
+        renderAdded();
+      });
+
+      $("removeTag").addEventListener("click", ()=>{
+        if(!selectedAdded){
+          msgEl.className = "toast warn";
+          msgEl.textContent = "Click an added tag to select it for removal.";
+          return;
+        }
+        state.addedTags[selectedAdded.cat] = null;
+        msgEl.className = "toast";
+        msgEl.textContent = `Removed: ${selectedAdded.cat}`;
+        selectedAdded = null;
+        renderAdded();
+      });
+
+      $("finish").addEventListener("click", ()=>{
+        const correct = (state.addedTags.pos===w.pos && state.addedTags.register===w.register && state.addedTags.domain===w.domain);
+        if(correct){
+          msgEl.className = "toast good";
+          msgEl.textContent = "Tagging confirmed. Supervisor approves the record.";
+          state.completed.add(w.word);
+          // reward
+          state.rp += 10;
+          updateHeader();
+          setTimeout(()=>nextWord(), 850);
+        } else {
+          msgEl.className = "toast bad";
+          msgEl.textContent = "Incorrect tags. Supervisor removes them and releases the creature. You'll need to recapture next time.";
+          // reset tags for this word
+          state.addedTags = { pos:null, register:null, domain:null };
+          renderAdded();
+          if(!state.completed.has(state.current)) state.escaped.push(state.current);
+          setTimeout(()=>nextWord(), 900);
+        }
+      });
+
+      renderAdded();
+      renderToolBelt();
+    }
+
+    // ---------------------------
+    // End screen
+    // ---------------------------
+    function renderEnd(){
+      updateHeader();
+      const main = $("main");
+      const net = state.rp - state.rpDebt;
+      main.innerHTML = `
+        <div class="stepBanner">
+          <div>
+            <div class="muted" style="font-size:12px">Expedition complete</div>
+            <div style="font-size:22px;font-weight:950">All creatures identified and tagged</div>
+            <div class="muted" style="margin-top:4px">Your research score is calculated from remaining RP minus any debt.</div>
+          </div>
+          <div class="row">
+            <button class="btn" id="playAgain">Play again</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="toast ${net>=0?"good":"bad"}">
+          <div><span class="muted">Remaining RP:</span> <b>${state.rp}</b></div>
+          <div><span class="muted">Debt:</span> <b>${state.rpDebt}</b></div>
+          <div style="margin-top:6px;font-size:18px"><span class="muted">Net research score:</span> <b>${net}</b></div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="toast">
+          <b>Prototype note</b><br/>
+          This preview focuses on interaction flow (steps 1–4), tool belt behaviour, and point accounting.
+        </div>
+      `;
+      $("playAgain").addEventListener("click", initGame);
+      $("stepTag").textContent = "—";
+      $("creatureTag").textContent = "—";
+    }
+
+    // ---------------------------
+    // Wiring
+    // ---------------------------
+    $("reset").addEventListener("click", initGame);
+
+    // Start
+    initGame();
+  </script>
+</body>
+</html>
