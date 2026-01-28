@@ -567,7 +567,8 @@
       const marginRatio = 0.05;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const gridWidth = viewportWidth * 0.9;
+      const horizontalPadding = 28;
+      const gridWidth = Math.max(0, viewportWidth * 0.9 - horizontalPadding);
       const gridHeight = viewportHeight * 0.7;
       const cellFromWidth = gridWidth / (columns + (columns - 1) * marginRatio);
       let gap = cellFromWidth * marginRatio;
