@@ -46,12 +46,11 @@
 
     /* Wordsearch */
     .wsWrap{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
-    .wsGrid{display:grid;grid-template-columns:repeat(12, 1fr);gap:6px;touch-action:none;user-select:none;}
-    .cell{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    .wsGrid{display:grid;grid-template-columns:repeat(var(--ws-cols, 12), var(--cell-size, 38px));gap:var(--cell-gap, 6px);touch-action:none;user-select:none;}
+    .cell{width:var(--cell-size, 38px);height:var(--cell-size, 38px);border-radius:10px;display:flex;align-items:center;justify-content:center;
       background:rgba(15,23,48,.9);border:1px solid rgba(34,49,84,.55);font-weight:800;letter-spacing:.5px;
       transition:transform .06s ease, background .12s ease, border-color .12s ease;
     }
-    @media (max-width: 420px){.cell{width:32px;height:32px}}
     .cell.active{background:rgba(255,176,32,.16);border-color:rgba(255,176,32,.45);transform:scale(1.03)}
     .cell.hit{background:rgba(51,209,122,.16);border-color:rgba(51,209,122,.45)}
     .cell.miss{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.45)}
@@ -267,6 +266,7 @@
       current: null,
       // word-circling
       wsGrid: [],
+      wsLayout: null,
       wsSelecting: false,
       wsPath: [],
       wsStartCell: null,
@@ -333,6 +333,7 @@
 
     function resetPerWord(){
       state.wsGrid = [];
+      state.wsLayout = null;
       state.wsSelecting = false;
       state.wsPath = [];
       state.wsStartCell = null;
@@ -537,10 +538,10 @@
         <div class="stepBanner">
           <div>
             <div class="muted" style="font-size:12px">Step 1</div>
-            <div style="font-size:18px;font-weight:950">Spot the creature</div>
-            <div class="muted" style="margin-top:4px">You will get <b>5 seconds</b> to memorize the target word, then search for it in the letter field.</div>
+            <div id="s1Title" style="font-size:18px;font-weight:950">Spot the creature</div>
+            <div id="s1Desc" class="muted" style="margin-top:4px">You will get <b>5 seconds</b> to memorize the target word, then search for it in the letter field.</div>
           </div>
-          <div class="row">
+          <div class="row" id="s1Actions">
             <button class="btn good" id="startS1">Start Observation</button>
           </div>
         </div>
@@ -549,35 +550,97 @@
       `;
 
       $("startS1").addEventListener("click", async ()=>{
+        const titleEl = $("s1Title");
+        const descEl = $("s1Desc");
+        const actionsEl = $("s1Actions");
+        if(titleEl) titleEl.textContent = "Selection builds a string. If it matches the target, the creature is spotted.";
+        if(descEl) descEl.textContent = "";
+        if(actionsEl) actionsEl.style.display = "none";
         await showTimedWord(state.current, 5, "Observation Briefing");
         buildWordSearch();
         renderWordSearchUI();
       });
     }
 
+    function getWordSearchLayout(targetLength){
+      const columns = 8;
+      const marginRatio = 0.05;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const horizontalPadding = 28;
+      const gridWidth = Math.max(0, viewportWidth * 0.9 - horizontalPadding);
+      const gridHeight = viewportHeight * 0.7;
+      const cellFromWidth = gridWidth / (columns + (columns - 1) * marginRatio);
+      let gap = cellFromWidth * marginRatio;
+      let rows = Math.max(1, Math.floor((gridHeight + gap) / (cellFromWidth + gap)));
+      let cellLength = cellFromWidth;
+
+      if(targetLength > rows){
+        rows = targetLength;
+        cellLength = gridHeight / (rows + (rows - 1) * marginRatio);
+        gap = cellLength * marginRatio;
+      }
+
+      return { columns, rows, cellLength, gap };
+    }
+
     function buildWordSearch(){
-      const size = 12;
       const letters = "abcdefghijklmnopqrstuvwxyz";
       const target = state.current.toLowerCase();
+      const targetLength = target.length;
+      const orientationOptions = ["horizontal", "vertical", "diagDown", "diagUp"];
+      const layout = getWordSearchLayout(targetLength);
+      const columns = layout.columns;
+      const rows = layout.rows;
+
+      let orientation = targetLength > 8
+        ? "vertical"
+        : orientationOptions[Math.floor(Math.random() * orientationOptions.length)];
+
+      if(orientation === "diagDown" || orientation === "diagUp"){
+        if(targetLength > rows){
+          orientation = "vertical";
+        }
+      }
 
       // Create empty grid
-      const grid = Array.from({length:size},()=>Array.from({length:size},()=>""));
+      const grid = Array.from({length:rows},()=>Array.from({length:columns},()=>""));
 
-      // Place target word horizontally in a random row
-      const row = Math.floor(Math.random()*size);
-      const startCol = Math.floor(Math.random()*(size - target.length));
-      for(let i=0;i<target.length;i++){
-        grid[row][startCol+i] = target[i];
+      if(orientation === "horizontal"){
+        const row = Math.floor(Math.random() * rows);
+        const startCol = Math.floor(Math.random() * (columns - targetLength + 1));
+        for(let i=0;i<targetLength;i++){
+          grid[row][startCol + i] = target[i];
+        }
+      } else if(orientation === "vertical"){
+        const col = Math.floor(Math.random() * columns);
+        const startRow = Math.floor(Math.random() * (rows - targetLength + 1));
+        for(let i=0;i<targetLength;i++){
+          grid[startRow + i][col] = target[i];
+        }
+      } else if(orientation === "diagDown"){
+        const startRow = Math.floor(Math.random() * (rows - targetLength + 1));
+        const startCol = Math.floor(Math.random() * (columns - targetLength + 1));
+        for(let i=0;i<targetLength;i++){
+          grid[startRow + i][startCol + i] = target[i];
+        }
+      } else {
+        const startRow = Math.floor(Math.random() * (rows - targetLength + 1)) + targetLength - 1;
+        const startCol = Math.floor(Math.random() * (columns - targetLength + 1));
+        for(let i=0;i<targetLength;i++){
+          grid[startRow - i][startCol + i] = target[i];
+        }
       }
 
       // Fill rest with random letters
-      for(let r=0;r<size;r++){
-        for(let c=0;c<size;c++){
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<columns;c++){
           if(!grid[r][c]) grid[r][c] = letters[Math.floor(Math.random()*letters.length)];
         }
       }
 
       state.wsGrid = grid;
+      state.wsLayout = layout;
       state.wsPath = [];
       state.wsSelecting = false;
       state.wsStartCell = null;
@@ -585,7 +648,7 @@
 
     function renderWordSearchUI(){
       const main = $("main");
-      const target = state.current.toUpperCase();
+      const layout = state.wsLayout;
 
       const gridHtml = state.wsGrid.map((row,r)=>row.map((ch,c)=>
         `<div class="cell" data-r="${r}" data-c="${c}">${ch.toUpperCase()}</div>`
@@ -595,26 +658,18 @@
         <div class="wsWrap">
           <div>
             <div class="muted" style="font-size:12px">Drag over letters to select</div>
-            <div class="wsGrid" id="wsGrid">${gridHtml}</div>
+            <div class="wsGrid" id="wsGrid" style="--ws-cols:${layout.columns};--cell-size:${layout.cellLength}px;--cell-gap:${layout.gap}px;">${gridHtml}</div>
           </div>
           <div class="wsSide">
-            <div class="toast">
-              <div class="muted" style="font-size:12px">Target</div>
-              <div style="font-size:22px;font-weight:950;letter-spacing:1px">${target}</div>
-              <div class="muted" style="margin-top:6px">Selection builds a string. If it matches the target, the creature is spotted.</div>
-            </div>
-            <div class="spacer"></div>
             <div class="row">
               <button class="btn" id="wsClear">Clear selection</button>
               <button class="btn good" id="wsSubmit">Confirm selection</button>
             </div>
-            <div id="wsMsg" class="toast" style="margin-top:10px">Start dragging on the grid.</div>
           </div>
         </div>
       `;
 
       const gridEl = $("wsGrid");
-      const msgEl = $("wsMsg");
 
       function setActiveCell(r,c,active){
         const cell = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
@@ -625,8 +680,6 @@
       function clearActive(){
         gridEl.querySelectorAll(".cell").forEach(x=>x.classList.remove("active","miss","hit"));
         state.wsPath = [];
-        msgEl.className = "toast";
-        msgEl.textContent = "Selection cleared.";
       }
 
       function pathString(){
@@ -644,8 +697,6 @@
         const r = +cell.dataset.r, c = +cell.dataset.c;
         state.wsPath.push({r,c});
         setActiveCell(r,c,true);
-        msgEl.className = "toast";
-        msgEl.textContent = `Selected: ${pathString().toUpperCase()}`;
       });
 
       gridEl.addEventListener("pointermove", (e)=>{
@@ -659,7 +710,6 @@
         if(state.wsPath.some(p=>p.r===r && p.c===c)) return;
         state.wsPath.push({r,c});
         setActiveCell(r,c,true);
-        msgEl.textContent = `Selected: ${pathString().toUpperCase()}`;
       });
 
       gridEl.addEventListener("pointerup", ()=>{ state.wsSelecting = false; });
@@ -672,8 +722,6 @@
         const targetLower = state.current.toLowerCase();
         if(sel === targetLower){
           gridEl.querySelectorAll(".cell.active").forEach(x=>x.classList.add("hit"));
-          msgEl.className = "toast good";
-          msgEl.textContent = "Success: creature spotted safely.";
           setTimeout(()=>{
             state.step = 2;
             updateHeader();
@@ -681,8 +729,6 @@
           }, 650);
         } else {
           gridEl.querySelectorAll(".cell.active").forEach(x=>x.classList.add("miss"));
-          msgEl.className = "toast bad";
-          msgEl.textContent = "Incorrect: the creature is alerted and runs away. You'll revisit later.";
           // mark and move on
           if(!state.completed.has(state.current)) state.escaped.push(state.current);
           setTimeout(()=>nextWord(), 900);
@@ -1154,6 +1200,12 @@
     // Wiring
     // ---------------------------
     $("reset").addEventListener("click", initGame);
+    window.addEventListener("resize", ()=>{
+      if(state.step === 1 && state.wsGrid.length){
+        buildWordSearch();
+        renderWordSearchUI();
+      }
+    });
 
     // Start
     initGame();
